@@ -22,7 +22,10 @@ define(['jquery'], function ($) {
                     speed: 500,
                     infinite: false,
                     initialSlide: 0,
-                    element: $(element)
+                    element: $(element),
+                    triggerBreakpoints: false,
+                    breakpoints: [480, 768, 1280]
+
                 }
 
                 self.settings = $.extend({}, self.defaults, options);
@@ -37,6 +40,10 @@ define(['jquery'], function ($) {
                 self.currentLeft = null;
                 self.$container = self.settings.element;
                 self.infinite = self.settings.infinite;
+                self.triggerBreakpoints = self.settings.triggerBreakpoints;
+                self.breakpoints = self.settings.breakpoints;
+                self.respondTo = 'window';
+
 
                 self.setProperties();
                 self.initaliseSlider();
@@ -82,10 +89,10 @@ define(['jquery'], function ($) {
                         self.$prevArrow.appendTo(self.$container);
                     } else {
 
-                        if (self.slideCount >= 1) {
+                        if (self.slideCount > self.slidesToShow && self.currentSlide < self.slideCount) {
                             self.$nextArrow.appendTo(self.$container);
 
-                            if (self.currentSlide * self.settings.slidesToShow >= self.slideCount) {
+                            if (self.currentSlide * self.slidesToShow >= 1) {
                                 self.$prevArrow.appendTo(self.$container);
                             }
                         }
@@ -192,10 +199,7 @@ define(['jquery'], function ($) {
             self.setPositions = function () {
 
                 self.setDimensions();
-
-
                 self.setCSS(self.getLeft(self.currentSlide));
-
                 self.$container.trigger('setPosition', [self]);
             }
 
@@ -256,7 +260,6 @@ define(['jquery'], function ($) {
                 var targetLeft;
 
                 self.slideOffSet = 0;
-                console.log(slideIndex);
 
                 if (self.infinite === true) {
 
@@ -266,9 +269,8 @@ define(['jquery'], function ($) {
 
                             if (slideIndex < 0) {
 
-                                slideIndex = self.slideCount - 1;
-
                                 self.slideOffSet = ((self.slideWidth * (self.slideCount * self.slidesToShow) ) * self.slidesToShow ) * -1;
+
                             } else if (slideIndex === 0) {
                                 self.slideOffSet = ((self.slideWidth * (slideIndex)) * self.slidesToShow ) * -1;
                             } else if (slideIndex > self.slideCount - 1) {
@@ -279,10 +281,12 @@ define(['jquery'], function ($) {
                         } else {
                             if (slideIndex < 0) {
 
+                                slideIndex = self.slideCount - self.slidesToShow;
+
                                 self.slideOffSet = ((self.responsiveWidthSlide * (self.slideCount) ) * self.slidesToShow ) * -1;
-                                slideIndex = self.slideCount - 1;
                             } else if (slideIndex === 0) {
-                                self.slideOffSet = ((self.responsiveWidthSlide * (slideIndex)) * self.slidesToShow ) * -1;
+
+                                self.slideOffSet = ((self.responsiveWidthSlide * (slideIndex * self.slidesToShow)) * self.slidesToShow ) * -1;
                             } else if (slideIndex + self.slidesToShow > self.slideCount - 1) {
 
                                 slideIndex = 0;
@@ -323,6 +327,32 @@ define(['jquery'], function ($) {
             self.initialiseEvents = function () {
 
                 self.initArrowEvents();
+                self.orientationChange();
+            }
+
+            self.orientationChange = function () {
+
+                self.responsive();
+            }
+
+            self.responsive = function () {
+
+                var respondToWidth;
+
+                self.containerWidth = self.$container.width();
+                self.windowWidth = window.innerWidth;
+
+                if (self.respondTo === 'window') respondToWidth = self.windowWidth;
+
+                $(window).on('orientationchange', function (e) {
+
+                    alert('kuda');
+
+
+                });
+
+                $(window).trigger('orientationchange', [self]);
+
             }
 
             self.initArrowEvents = function () {
@@ -402,8 +432,6 @@ define(['jquery'], function ($) {
                     }
                 } else {
                     animSlide = targetSlide;
-
-                    ///animate function below
                 }
 
                 self.currentSlide = animSlide;

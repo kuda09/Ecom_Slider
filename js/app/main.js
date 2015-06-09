@@ -2,9 +2,10 @@ require(["jquery", "app/slider"], function ($, Slider){
 
 
     new Slider('.slider', {
-        slidesToShow: 3,
+        slidesToShow: 1,
         speed: 1000,
-        infinite: true
+        infinite: false,
+        initialSlide: 0
     });
 
 
