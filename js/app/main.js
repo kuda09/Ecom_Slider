@@ -1,8 +1,10 @@
 require(["jquery", "app/slider"], function ($, Slider){
 
 
-    var slider = new Slider('.slider', {
-        date: 'kuda'
+    new Slider('.slider', {
+        slidesToShow: 3,
+        speed: 1000,
+        infinite: true
     });
 
 

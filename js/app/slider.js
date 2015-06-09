@@ -1,439 +1,476 @@
 define(['jquery'], function ($) {
 
-    return function (element, options) {
-
-        var defaults = {
-            arrows: true,
-            nextArrow: '<a class="slider-next" data-role="none" aria-label="next"> Next </a> ',
-            previousArrow: '<a class="slider-previous" data-role="none" aria-label="previous"> Previous </a> ',
-            useCss: true,
-            swipe: true,
-            rtl: false,
-            slidesToScroll: 1,
-            fixedWidth: false,
-            responsiveWidth: true,
-            slidesToShow: 1,
-            slideWidth: 200,
-            cssEase: 'ease',
-            speed: 500,
-            slide: '',
-            fade: false,
-            initialSlide: 0,
-            element: $(element)
-
-        }
-
-        var settings = $.extend({}, defaults, options);
-
-        var init = function () {
+        return function (element, options) {
 
             var self = this;
 
-            //set the default values as properties, so we can manipulate the values
-            self.currentSlide = settings.initialSlide;
-            self.fixedWidth = settings.fixedWidth;
-            self.responsiveWidth = settings.responsiveWidth;
-            self.slideWidth = settings.slideWidth;
-            self.slidesToShow = settings.slidesToShow
-            self.currentLeft = null;
-            self.$container = settings.element;
+            self.init = function () {
 
+                self.defaults = {
+                    arrows: true,
+                    nextArrow: '<a class="slide-next" data-role="none" aria-label="next"> Next </a> ',
+                    previousArrow: '<a class="slide-previous" data-role="none" aria-label="previous"> Previous </a> ',
+                    useCss: true,
+                    swipe: true,
+                    rtl: false,
+                    slidesToScroll: 1,
+                    fixedWidth: false,
+                    responsiveWidth: true,
+                    slidesToShow: 1,
+                    slideWidth: 200,
+                    cssEase: 'ease',
+                    speed: 500,
+                    infinite: false,
+                    initialSlide: 0,
+                    element: $(element)
+                }
 
-            initialiseSlider();
-            setProperties();
-            loadSlider();
-            initialiseEvents();
+                self.settings = $.extend({}, self.defaults, options);
 
-            return this;
-        }
+                //set the default values as properties, so we can manipulate the values
+                self.currentSlide = self.settings.initialSlide;
+                self.fixedWidth = self.settings.fixedWidth;
+                self.responsiveWidth = self.settings.responsiveWidth;
+                self.slideWidth = self.settings.slideWidth;
+                self.slidesToShow = self.settings.slidesToShow;
+                self.slidesToScroll = self.settings.slidesToScroll;
+                self.currentLeft = null;
+                self.$container = self.settings.element;
+                self.infinite = self.settings.infinite;
 
-        var initialiseSlider = function () {
+                self.setProperties();
+                self.initaliseSlider();
+                self.initialiseEvents();
 
-            if (!self.$container.hasClass('slider-initialised')) {
-                self.$container.addClass('slider-initialised');
+                return self;
             }
 
-            self.$slider = self.$container.children().addClass('slider-slide');
-            self.slideCount = self.$slider.length;
+            self.initaliseSlider = function () {
 
-            self.$slider.each(function (index, element) {
-                $(element).attr('data-slide-index', index);
-            })
+                if (!self.$container.hasClass('slider-initialised')) {
+                    self.$container.addClass('slider-initialised');
+                    self.$container.addClass('eComSlider');
+                }
 
-            self.$container.addClass('eComSlider');
+                self.$slider = self.$container.children().addClass('slider-slide');
+                self.slideCount = self.$slider.length;
 
-            // wrap all the elements with the slide-track which we will used for animation
-            self.$slideTrack = (self.slideCount === 0) ? $('<div class="slide-track"/>').appendTo(self.$container) : self.$slider.wrapAll('<div class="slide-track"/>').parent();
+                self.$slider.each(function (index, element) {
+                    $(element).attr('data-slide-index', index);
+                })
 
-            self.$list = self.$slideTrack.wrap('<div aria-live="polite" class="slider-list"/>').parent();
+                self.$slideTrack = (self.slideCount === 0) ? $('<div class="slide-track"/>').appendTo(self.$container) : self.$slider.wrapAll('<div class="slide-track"/>').parent();
 
-            applyArrows();
-            setClasses(self.currentSlide);
-        }
+                self.$list = self.$slideTrack.wrap('<div aria-live="polite" class="slider-list"/>').parent();
 
-        var applyArrows = function () {
 
-            self.$prevArrow = $(settings.previousArrow);
-            self.$nextArrow = $(settings.nextArrow);
+                self.applyArrows();
+                self.setClasses(self.currentSlide);
+                self.loadSlider();
+            }
 
-            if (settings.arrows === true) {
+            self.applyArrows = function () {
 
-                if (self.currentSlide <= 0) {
-                    self.$nextArrow.appendTo(self.$container);
-                } else if (self.currentSlide >= self.slideCount) {
-                    self.$prevArrow.appendTo(self.$container);
+                self.$prevArrow = $(self.settings.previousArrow);
+                self.$nextArrow = $(self.settings.nextArrow);
+
+                if (self.settings.arrows === true) {
+
+                    if (self.infinite === true) {
+
+                        self.$nextArrow.appendTo(self.$container);
+                        self.$prevArrow.appendTo(self.$container);
+                    } else {
+
+                        if (self.slideCount >= 1) {
+                            self.$nextArrow.appendTo(self.$container);
+
+                            if (self.currentSlide * self.settings.slidesToShow >= self.slideCount) {
+                                self.$prevArrow.appendTo(self.$container);
+                            }
+                        }
+                    }
+
+                }
+            }
+
+            self.setClasses = function (index) {
+
+                var allSlides;
+                var indexOffset;
+                var remainder;
+
+                self.$container.find('.slider-slide').removeClass('slide-active').attr('aria-hidden', 'true');
+                allSlides = self.$container.find('.slider-slide');
+
+
+                if (index >= 0 && index <= (self.slideCount - self.slidesToShow)) {
+
+                    self.$slider.slice(index, index + self.slidesToShow).addClass('slide-active').attr('aria-hidden', 'false');
+                } else if (allSlides.length <= self.slidesToShow) {
+                    allSlides.addClass('slide-active').attr('aria-hidden', 'false');   //add active classs if the slide is less than slides to show
+                } else if (index + self.slidesToShow > self.slideCount - 1) {
+
+                    if (self.infinite === true) {
+                        index = 0;
+                        self.$slider.slice(index, index + self.slidesToShow).addClass('slide-active').attr('aria-hidden', 'false');
+                    }
                 } else {
-                    self.$prevArrow.appendTo(self.$container);
-                    self.$nextArrow.appendTo(self.$container);
-                }
-            }
-        }
 
-        var setClasses = function (index) {
+                    remainder = self.slideCount % self.slidesToShow;
+                    indexOffset = index
 
-            var allSlides;
-            var indexOffset;
-            var remainder;
+                    if (self.slidesToShow == self.slidesToScroll && (self.slideCount - index) < self.slidesToShow) {
+                        allSlides.slice(indexOffset - (self.slidesToShow - remainder), indexOffset + remainder).addClass('slide-active').attr('aria-hidden', 'false');
+                    } else {
+                        allSlides.slice(indexOffset, indexOffset + self.slidesToShow).addClass('slide-active').attr('aria-hidden', 'false');
+                    }
 
-            self.$container.find('.slider-slide').removeClass('slide-active').attr('aria-hidden', 'true');
-            allSlides = self.$container.find('.slider-slide');
-
-            if (index >= 0 && index <= (self.slideCount - self.slidesToShow)) {
-
-                self.$slider.slice(index, index + self.slidesToShow).addClass('slide-active').attr('aria-hidden', 'false');
-            } else if (allSlides.length <= settings.slidesToShow) {
-                allSlides.addClass('slide-active').attr('aria-hidden', 'false');   //add active classs if the slide is less than slides to show
-            } else {
-
-                remainder = self.slideCount % settings.slidesToShow;
-                indexOffset = index
-
-                if (settings.slidesToShow == settings.slidesToScroll && (self.slideCount - index) < settings.slidesToShow) {
-                    allSlides.slice(indexOffset - (settings.slidesToShow - remainder), indexOffset + remainder).addClass('slide-active').attr('aria-hidden', 'false');
-                } else {
-                    allSlides.slice(indexOffset, indexOffset + settings.slidesToShow).addClass('slide-active').attr('aria-hidden', 'false');
-                }
-
-            }
-        }
-
-        var setProperties = function () {
-
-            //cache the bodyStyle as reference
-            var bodyStyle = document.body.style;
-
-            self.positionProp = 'left';
-
-            //check for CSS transitions
-            if (bodyStyle.webkitTransition !== undefined || bodyStyle.mozTransition !== undefined || bodyStyle.msTransition !== undefined) {
-
-                if (settings.useCss === true) {
-                    self.cssTransitions = true;
                 }
             }
 
-            if (bodyStyle.mozTransform !== undefined) {
-                self.animationType = "MozTransform";
-                self.transformType = "-moz-transform";
-                self.TransitionType = "MozTransition";
+            self.setProperties = function () {
 
-                if (bodyStyle.mozPerspective === undefined) {
-                    self.animationType = false;
+                var bodyStyle = document.body.style;
+
+                self.positionProp = 'left';
+
+                //check for CSS transitions
+                if (bodyStyle.webkitTransition !== undefined || bodyStyle.mozTransition !== undefined || bodyStyle.msTransition !== undefined) {
+
+                    if (self.settings.useCss === true) {
+                        self.cssTransitions = true;
+                    }
+                }
+
+                if (bodyStyle.mozTransform !== undefined) {
+                    self.animationType = "MozTransform";
+                    self.transformType = "-moz-transform";
+                    self.TransitionType = "MozTransition";
+
+                    if (bodyStyle.mozPerspective === undefined) {
+                        self.animationType = false;
+                    }
+                }
+
+                if (bodyStyle.oTransform !== undefined) {
+                    self.animationType = "OTransform";
+                    self.transformType = "-O-transform";
+                    self.TransitionType = "OTransition";
+
+                    if (bodyStyle.webkitPerspective === undefined) {
+                        self.animationType = false;
+                    }
+                }
+
+                if (bodyStyle.webkitTransform !== undefined) {
+                    self.animationType = "webkitTransform";
+                    self.transformType = "-webkit-transform";
+                    self.TransitionType = "webkitTransition";
+
+                    if (bodyStyle.webkitTransform === undefined) {
+                        self.animationType = false;
+                    }
+                }
+
+                if (bodyStyle.transform !== undefined) {
+                    self.animationType = "transform";
+                    self.transformType = "transform";
+                    self.TransitionType = "transition";
+
+                    if (bodyStyle.perspective === undefined) {
+                        self.animationType = false;
+                    }
                 }
             }
 
-            if (bodyStyle.oTransform !== undefined) {
-                self.animationType = "OTransform";
-                self.transformType = "-O-transform";
-                self.TransitionType = "OTransition";
+            self.loadSlider = function () {
 
-                if (bodyStyle.webkitPerspective === undefined) {
-                    self.animationType = false;
+                self.setPositions();
+            }
+
+            self.setPositions = function () {
+
+                self.setDimensions();
+
+
+                self.setCSS(self.getLeft(self.currentSlide));
+
+                self.$container.trigger('setPosition', [self]);
+            }
+
+            self.setDimensions = function () {
+
+                var offset;
+
+
+                if (self.slideCount > 0 && self.fixedWidth === true && self.slideWidth > 0) {
+
+                    self.responsiveWidth = false;
+
+                    //set the width of the outer element to the number of slides * the slide width
+                    self.$list.width(self.slideCount * self.settings.slideWidth);
+                    self.$slideTrack.children('.slider-slide').width(self.slideWidth);
+                    self.$container.width(self.slideWidth * self.slidesToShow);
+                } else if (self.slideCount > 0 && self.responsiveWidth === true && self.slidesToShow > 0) {
+
+                    self.fixedWidth = false;
+                    var outerWidth = self.$container.width();
+                    self.$list.width((outerWidth / self.slidesToShow) * self.slideCount);
+
+                    //get the first item and take of the margin
+                    offset = self.$slider.first().outerWidth(true) - self.$slider.first().width();
+
+                    self.responsiveWidthSlide = outerWidth / self.slidesToShow
+                    self.$slideTrack.children('.slider-slide').width(self.responsiveWidthSlide);
+                    self.$container.width(outerWidth / self.slidesToShow * self.slidesToShow);
                 }
+
             }
 
-            if (bodyStyle.webkitTransform !== undefined) {
-                self.animationType = "webkitTransform";
-                self.transformType = "-webkit-transform";
-                self.TransitionType = "webkitTransition";
+            self.setCSS = function (position) {
 
-                if (bodyStyle.webkitTransform === undefined) {
-                    self.animationType = false;
-                }
-            }
+                var positionProperties = {};
+                var x;
 
-            if (bodyStyle.transform !== undefined) {
-                self.animationType = "transform";
-                self.transformType = "transform";
-                self.TransitionType = "transition";
-
-                if (bodyStyle.perspective === undefined) {
-                    self.animationType = false;
-                }
-            }
-        }
-
-        var loadSlider = function () {
-            setPositions();
-        }
-
-        var setPositions = function () {
-
-            setDimensions();
-            setCSS(getleft(self.currentSlide));
-
-            self.$container.trigger('setPosition', [self]);
-
-        }
-
-        var setDimensions = function () {
-
-            var offset;
-
-
-            if (self.slideCount > 0 && self.fixedWidth === true && self.slideWidth > 0) {
-
-                self.responsiveWidth = false;
-
-                //set the width of the outer element to the number of slides * the slide width
-                self.$list.width(self.slideCount * settings.slideWidth);
-                self.$slideTrack.children('.slider-slide').width(self.slideWidth);
-                self.$container.width(self.slideWidth * self.slidesToShow);
-            } else if (self.slideCount > 0 && self.responsiveWidth === true && self.slidesToShow > 0) {
-
-                self.fixedWidth = false;
-                var outerWidth = self.$container.width();
-                self.$list.width((outerWidth / self.slidesToShow) * self.slideCount);
-
-                //get the first item and take of the margin
-                offset = self.$slider.first().outerWidth(true) - self.$slider.first().width();
-
-                self.responsiveWidthSlide = outerWidth / self.slidesToShow
-                self.$slideTrack.children('.slider-slide').width(self.responsiveWidthSlide);
-                self.$container.width(outerWidth / self.slidesToShow * self.slidesToShow);
-            }
-
-
-        }
-
-        var setCSS = function (position) {
-
-            var positionProperties = {};
-            var x;
-
-
-            if (settings.rtl === true) {
-                position = -position;
-            }
-
-
-            x = self.positionProp == "left" ? Math.ceil(position) + "px" : "0px";
-
-            //set the left position on the $slidetrack
-            positionProperties[self.positionProp] = position;
-
-            //set the transform: translate3d on the $slidetrack
-            positionProperties[self.animationType] = 'translate3d(' + x + ', 0px' + ', 0px)';
-            self.$slideTrack.css(positionProperties);
-
-        }
-
-        /**
-         * Function to determine the slideoffset in pixels
-         * @param slideIndex {number}
-         * @returns {*}
-         */
-        var getleft = function (slideIndex) {
-
-            var targetLeft;
-
-            self.slideOffSet = 0;
-
-            if (slideIndex + settings.slidesToShow > self.slideCount) {
-
-                if (settings.fixedWidth === true) {
-                    self.slideOffSet = ((slideIndex + settings.slidesToShow) - self.slideCount) * self.slideWidth;
-                } else {
-                    self.slideOffSet = ((slideIndex + settings.slidesToShow) - self.slideCount) * self.responsiveWidthSlide;
+                if (self.settings.rtl === true) {
+                    position = -position;
                 }
 
 
+                x = self.positionProp == "left" ? Math.ceil(position) + "px" : "0px";
+
+                //set the left position on the $slidetrack
+                positionProperties[self.positionProp] = position;
+
+                //set the transform: translate3d on the $slidetrack
+                positionProperties[self.animationType] = 'translate3d(' + x + ', 0px' + ', 0px)';
+
+                self.$slideTrack.css(positionProperties);
+
             }
 
-            if (self.slideCount <= settings.slidesToShow) {
+            self.getLeft = function (slideIndex) {
+
+
+                var targetLeft;
+
                 self.slideOffSet = 0;
-            }
+                console.log(slideIndex);
 
-            if (settings.fixedWidth === true) {
-                targetLeft = ((slideIndex * (self.slideWidth * settings.slidesToScroll) * -1)) + self.slideOffSet;
-            } else {
-                targetLeft = ((slideIndex * (self.responsiveWidthSlide * settings.slidesToScroll) * -1)) + self.slideOffSet;
-            }
+                if (self.infinite === true) {
 
-            return targetLeft;
-        }
+                    if (self.slideCount > self.slidesToShow) {
 
-        var initialiseEvents = function () {
+                        if (self.fixedWidth === true) {
 
-            initArrowEvents();
-        }
+                            if (slideIndex < 0) {
 
-        var initArrowEvents = function () {
+                                slideIndex = self.slideCount - 1;
 
-            if (settings.arrows === true && self.slideCount > settings.slidesToShow) {
+                                self.slideOffSet = ((self.slideWidth * (self.slideCount * self.slidesToShow) ) * self.slidesToShow ) * -1;
+                            } else if (slideIndex === 0) {
+                                self.slideOffSet = ((self.slideWidth * (slideIndex)) * self.slidesToShow ) * -1;
+                            } else if (slideIndex > self.slideCount - 1) {
 
-                self.$prevArrow.on('click', {message: 'previous'}, changeSlide);
-                self.$nextArrow.on('click', {message: 'next'}, changeSlide);
-            }
-        }
+                                slideIndex = 0;
+                                self.slideOffSet = ((self.slideWidth * (slideIndex) ) * self.slidesToShow ) * -1;
+                            }
+                        } else {
+                            if (slideIndex < 0) {
 
-        var changeSlide = function (e) {
+                                self.slideOffSet = ((self.responsiveWidthSlide * (self.slideCount) ) * self.slidesToShow ) * -1;
+                                slideIndex = self.slideCount - 1;
+                            } else if (slideIndex === 0) {
+                                self.slideOffSet = ((self.responsiveWidthSlide * (slideIndex)) * self.slidesToShow ) * -1;
+                            } else if (slideIndex + self.slidesToShow > self.slideCount - 1) {
 
-            var $target = $(e.target);
-            var slideOffset;
-            var indexOffset;
+                                slideIndex = 0;
+                                self.slideOffSet = ((self.responsiveWidthSlide * (slideIndex) ) * self.slidesToShow ) * -1;
+                            }
 
-            indexOffset = settings.slidesToScroll;
-
-            if ($target.is('a')) {
-                e.preventDefault();
-            }
-
-            switch (e.data.message) {
-
-                case 'previous':
-                    slideOffset = settings.slidesToScroll;
-
-                    if (self.slideCount > settings.slidesToShow) {
-                        slideHandler(self.currentSlide - slideOffset)
+                        }
                     }
 
-                    break;
-                case 'next':
-                    slideOffset = settings.slidesToScroll;
+                } else {
 
-                    if (self.slideCount > settings.slidesToShow) {
-                        slideHandler(self.currentSlide + slideOffset)
+                    if (slideIndex + self.slidesToShow > self.slideCount) {
+
+                        if (self.fixedWidth === true) {
+                            self.slideOffSet = ((slideIndex + self.slidesToShow) - self.slideCount) * self.slideWidth;
+                        } else {
+                            self.slideOffSet = ((slideIndex + self.slidesToShow) - self.slideCount) * self.responsiveWidthSlide;
+                        }
                     }
 
-                    break;
-                default:
-                    return;
 
-            }
+                }
 
-        }
+                if (self.slideCount <= self.slidesToShow) {
+                    self.slideOffSet = 0;
+                }
 
-        var slideHandler = function (index) {
 
-            var targetSlide;
-            var animSlide;
-            var slideLeft;
-            var targertLeft = null;
-
-            //dont animate if the currentlslide is equal to index
-            if (self.currentSlide === index) {
-                return;
-            }
-
-            if (index <= self.currentSlide) {
-
-                updateArrows(index);
-                return;
-            }
-
-            //dont animate if the slidecount is less than or  equal to slidetoshow
-            if (self.slideCount <= settings.slidesToShow) {
-                return;
-            }
-
-            targetSlide = index;
-            //get the pixels to animate the current slide
-            targertLeft = getleft(targetSlide);
-            slideLeft = getleft(self.currentSlide);
-
-            self.currentLeft = slideLeft;
-
-            if (targetSlide < 0) {
-
-                if (self.slideCount % settings.slidesToScroll !== 0) {
-                    animSlide = self.slideCount - (self.slideCount % settings.slidesToScroll);
+                if (self.fixedWidth === true) {
+                    targetLeft = ((slideIndex * self.slideWidth) * -1) + self.slideOffSet;
                 } else {
-                    animSlide = self.slideCount + targetSlide;
+                    targetLeft = ((slideIndex * self.responsiveWidthSlide) * -1) + self.slideOffSet;
                 }
-            } else if (targetSlide >= self.slideCount) {
-                if (self.slideCount % settings.slidesToScroll !== 0) {
-                    animSlide = 0;
+
+                return targetLeft;
+            }
+
+            self.initialiseEvents = function () {
+
+                self.initArrowEvents();
+            }
+
+            self.initArrowEvents = function () {
+
+                if (self.settings.arrows === true && self.slideCount > self.slidesToShow) {
+
+                    self.$prevArrow.on('click', {message: 'previous'}, self.changeSlide);
+                    self.$nextArrow.on('click', {message: 'next'}, self.changeSlide);
+                }
+            }
+
+            self.changeSlide = function (e) {
+
+                var $target = $(e.target);
+                var slideOffset;
+
+                if ($target.is('a')) {
+                    e.preventDefault();
+                }
+
+                switch (e.data.message) {
+
+                    case 'previous':
+                        slideOffset = self.slidesToScroll;
+
+                        if (self.slideCount > self.slidesToShow) {
+                            self.slideHandler(self.currentSlide - slideOffset)
+                        }
+
+                        break;
+                    case 'next':
+                        slideOffset = self.slidesToScroll;
+
+                        if (self.slideCount > self.slidesToShow) {
+                            self.slideHandler(self.currentSlide + slideOffset)
+                        }
+
+                        break;
+                    default:
+                        return;
+
+                }
+            }
+
+            self.slideHandler = function (index) {
+
+                var targetSlide;
+                var animSlide;
+                var slideLeft;
+                var targetLeft = null;
+
+                if (self.currentSlide === index) return;
+
+                if (self.slideCount <= self.slidesToShow) return;
+
+                targetSlide = index;
+
+                targetLeft = self.getLeft(targetSlide);
+                slideLeft = self.getLeft(self.currentSlide);
+
+                //update current slide
+                self.currentLeft = slideLeft;
+
+                if (targetSlide < 0) {
+
+                    if (self.slideCount % self.slidesToScroll !== 0) {
+                        animSlide = self.slideCount - (self.slideCount % self.slidesToScroll);
+                    } else {
+                        animSlide = self.slideCount + targetSlide;
+                    }
+                } else if (targetSlide >= self.slideCount) {
+                    if (self.slideCount % self.slidesToScroll !== 0) {
+                        animSlide = 0;
+                    } else {
+
+                        animSlide = targetSlide - self.slideCount;
+                    }
                 } else {
-                    animSlide = targetSlide - self.slideCount;
+                    animSlide = targetSlide;
+
+                    ///animate function below
                 }
-            } else {
-                animSlide = targetSlide;
+
+                self.currentSlide = animSlide;
+
+
+                self.setClasses(self.currentSlide);
+                self.updateArrows(self.currentSlide);
+
+                self.animateSlide(targetLeft); //pass in the value to animate
             }
 
-            self.currentSlide = animSlide;
+            self.updateArrows = function (index) {
 
+                self.currentSlide = index;
 
-            setClasses(self.currentSlide);
-            updateArrows(self.currentSlide);
+                if (self.settings.arrows === true && self.slideCount > self.slidesToShow) {
 
-            animateSlide(targertLeft); //pass in the value to animate
-        }
+                    if (self.infinite === true) {
+                        self.$prevArrow.removeClass('arrow-disabled');
+                        self.$nextArrow.removeClass('arrow-disabled');
+                    } else {
 
-        var updateArrows = function (index) {
+                        self.$prevArrow.removeClass('arrow-disabled');
+                        self.$nextArrow.removeClass('arrow-disabled');
 
-            self.currentSlide = index;
+                        if (self.currentSlide >= 1) {
+                            self.$prevArrow.appendTo(self.$container);
+                        }
 
-            if (settings.arrows === true && self.slideCount > settings.slidesToShow) {
-                self.$prevArrow.removeClass('arrow-disabled');
-                self.$nextArrow.removeClass('arrow-disabled');
-
-
-                if (self.currentSlide <= 1) {
-                    self.$prevArrow.appendTo(self.$container);
+                        if (self.currentSlide <= 0) {
+                            self.$nextArrow.removeClass('arrow-disabled');
+                            self.$prevArrow.addClass('arrow-disabled');
+                        } else if (self.currentSlide >= self.slideCount - self.slidesToShow || self.currentSlide >= self.slideCount - self.slidesToScroll) {
+                            self.$nextArrow.addClass('arrow-disabled');
+                            self.$prevArrow.removeClass('arrow-disabled');
+                        } else if (self.currentSlide >= self.slideCount - 1) {
+                            self.$nextArrow.addClass('arrow-disabled');
+                            self.$prevArrow.removeClass('arrow-disabled');
+                        }
+                    }
                 }
-                if (self.currentSlide <= 0) {
-                    self.$nextArrow.removeClass('arrow-disabled');
-                } else if (self.currentSlide >= self.slideCount - settings.slidesToShow) {
-                    self.$nextArrow.addClass('arrow-disabled');
-                    self.$prevArrow.removeClass('arrow-disabled');
-                } else if (self.currentSlide >= self.slideCount - 1) {
-                    self.$nextArrow.addClass('arrow-disabled');
-                    self.$prevArrow.removeClass('arrow-disabled');
+            }
+
+            self.animateSlide = function (targetLeft) {
+
+                var animationProps = {};
+
+                if (self.settings.rtl === true) {
+                    targetLeft = -targetLeft;
                 }
-            }
-        }
 
-        var animateSlide = function (targetLeft, callback) {
+                self.applyTransition();
+                targetLeft = Math.ceil(targetLeft);
 
-            var animationProps = {};
-
-            if (settings.rtl === true) {
-                targetLeft = -targetLeft;
+                animationProps[self.animationType] = 'translate3d(' + targetLeft + 'px, 0px, 0px)';
+                self.$slideTrack.css(animationProps);
             }
 
-            applyTransition();
-            targetLeft = Math.ceil(targetLeft);
+            self.applyTransition = function () {
 
-            animationProps[self.animationType] = 'translate3d(' + targetLeft + 'px, 0px, 0px)';
-            self.$slideTrack.css(animationProps);
+                var transition = {};
 
-            if (callback) {
-                setTimeout(function () {
-
-                    callback.call();
-                }, self.options.speed);
+                transition[self.TransitionType] = self.transformType + ' ' + self.settings.speed + 'ms ' + self.settings.cssEase;
+                self.$slideTrack.css(transition);
             }
+
+            return self.init();
         }
-
-        var applyTransition = function () {
-
-            var transition = {};
-
-            transition[self.TransitionType] = self.transformType + ' ' + settings.speed + 'ms ' + settings.cssEase;
-            self.$slideTrack.css(transition);
-        }
-
-        return init();
     }
-})
+)

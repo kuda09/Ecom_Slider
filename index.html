@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title>Hello World</title>
+</head>
+<body>
+
+<button>get random person</button>
+<input type="text"/>
+
+<script src="js/lib/jquery.js"></script>
+<script>
+
+    var user = {
+
+        data: [
+            {
+                name: "T.Woods",
+                age: 37
+            },
+            {
+                name: "P.Mickelson",
+                age: 43
+            }
+
+        ],
+        clickHandler: function (e) {
+
+            var randomNum = ((Math.random() * 2 | 0) + 1) - 1;
+
+            $('input').val(this.data[randomNum].name + "" + this.data[randomNum].age);
+
+        }
+    }
+
+
+    $("button").on('click', user.clickHandler.bind(user));
+</script>
+</body>
+</html>
