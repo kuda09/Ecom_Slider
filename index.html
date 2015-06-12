@@ -6,36 +6,56 @@
 </head>
 <body>
 
-<button>get random person</button>
-<input type="text"/>
+
+<div id="results"></div>
 
 <script src="js/lib/jquery.js"></script>
 <script>
 
-    var user = {
 
-        data: [
-            {
-                name: "T.Woods",
-                age: 37
-            },
-            {
-                name: "P.Mickelson",
-                age: 43
+    !function (exports, $, undefined) {
+
+        var Plugin = function () {
+
+
+            var priv = {};
+            var Plugin = {};
+            var defaults = {};
+
+            // private options and methods
+            priv.options = {};
+            priv.method1 = function () {
+            };
+            priv.method2 = function () {
+            };
+
+            //publoc methods
+
+            Plugin.method1 = function () {
+            };
+            Plugin.method2 = function () {
+            };
+
+            Plugin.init = function (options) {
+
+                $.extend(priv.options, defaults, options);
+
+                priv.method1();
+
+                return Plugin
             }
 
-        ],
-        clickHandler: function (e) {
-
-            var randomNum = ((Math.random() * 2 | 0) + 1) - 1;
-
-            $('input').val(this.data[randomNum].name + "" + this.data[randomNum].age);
-
+            return Plugin;
         }
-    }
+
+        exports.Plugin = Plugin;
+    }(this, jQuery);
 
 
-    $("button").on('click', user.clickHandler.bind(user));
+    var myPlugin = new Plugin;
+
+    myPlugin.init();
+
 </script>
 </body>
 </html>
